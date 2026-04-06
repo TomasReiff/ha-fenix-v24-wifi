@@ -33,6 +33,9 @@ Copy the `custom_components/fenix_v24_wifi` folder into your Home Assistant `con
 
 ## Changelog
 
+### 1.1.3
+- Fix manifest key ordering (required by Hassfest)
+
 ### 1.1.2
 - Added `issue_tracker` to manifest (required for HACS default list)
 - Added GitHub Actions for HACS and Hassfest validation
