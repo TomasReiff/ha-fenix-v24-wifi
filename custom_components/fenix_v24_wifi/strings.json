@@ -49,6 +49,9 @@
       }
     },
     "sensor": {
+      "rated_power": {
+        "name": "Rated Power"
+      },
       "power": {
         "name": "Power"
       },

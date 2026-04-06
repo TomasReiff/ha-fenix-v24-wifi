@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any
 
 from homeassistant.components.sensor import (
     RestoreSensor,
@@ -55,18 +54,66 @@ async def async_setup_entry(
             zone_name = device_data.get("name", device_id)
             power_w = device_data.get("power_w", 0)
 
+            entities.append(FenixRatedPowerSensor(coordinator, smarthome_id, device_id, zone_name, power_w))
             entities.append(FenixPowerSensor(coordinator, smarthome_id, device_id, zone_name, power_w))
             entities.append(FenixEnergySensor(coordinator, smarthome_id, device_id, zone_name, power_w))
 
     async_add_entities(entities)
 
 
-class FenixPowerSensor(CoordinatorEntity, SensorEntity):
-    """Power sensor showing the rated zone power (W) from the cloud API."""
+class FenixRatedPowerSensor(CoordinatorEntity, SensorEntity):
+    """Sensor showing the static rated power (W) configured for the zone."""
 
     _attr_device_class = SensorDeviceClass.POWER
     _attr_native_unit_of_measurement = UnitOfPower.WATT
     _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "rated_power"
+
+    def __init__(
+        self,
+        coordinator: FenixDataUpdateCoordinator,
+        smarthome_id: str,
+        device_id: str,
+        zone_name: str,
+        power_w: int,
+    ) -> None:
+        """Initialize the rated power sensor."""
+        super().__init__(coordinator)
+        self._smarthome_id = smarthome_id
+        self._device_id = device_id
+        self._attr_unique_id = f"{smarthome_id}_{device_id}_rated_power"
+        self._attr_has_entity_name = True
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device info."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"{self._smarthome_id}_{self._device_id}")},
+            via_device=(DOMAIN, self._smarthome_id),
+        )
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the static rated power (W) from cloud API."""
+        device = (
+            (self.coordinator.data or {})
+            .get("smarthomes", {})
+            .get(self._smarthome_id, {})
+            .get("devices", {})
+            .get(self._device_id, {})
+        )
+        if not device:
+            return None
+        return device.get("power_w", 0)
+
+
+class FenixPowerSensor(CoordinatorEntity, SensorEntity):
+    """Power sensor showing actual consumption: rated power when heating is on, 0 W when off."""
+
+    _attr_device_class = SensorDeviceClass.POWER
+    _attr_native_unit_of_measurement = UnitOfPower.WATT
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "power"
 
     def __init__(
         self,
@@ -81,7 +128,7 @@ class FenixPowerSensor(CoordinatorEntity, SensorEntity):
         self._smarthome_id = smarthome_id
         self._device_id = device_id
         self._attr_unique_id = f"{smarthome_id}_{device_id}_power"
-        self._attr_name = f"{zone_name} Power"
+        self._attr_has_entity_name = True
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -93,7 +140,7 @@ class FenixPowerSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def native_value(self) -> int | None:
-        """Return the rated power (W) from cloud API - always the configured wattage."""
+        """Return rated power (W) when heating is on, 0 W when off."""
         device = (
             (self.coordinator.data or {})
             .get("smarthomes", {})
@@ -103,7 +150,12 @@ class FenixPowerSensor(CoordinatorEntity, SensorEntity):
         )
         if not device:
             return None
-        return device.get("power_w", 0)
+        try:
+            if int(device.get("heating_state", "0")) > 0:
+                return device.get("power_w", 0)
+        except (ValueError, TypeError):
+            pass
+        return 0
 
 
 class FenixEnergySensor(CoordinatorEntity, RestoreSensor):
@@ -112,6 +164,7 @@ class FenixEnergySensor(CoordinatorEntity, RestoreSensor):
     _attr_device_class = SensorDeviceClass.ENERGY
     _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_translation_key = "energy"
 
     def __init__(
         self,
@@ -126,7 +179,7 @@ class FenixEnergySensor(CoordinatorEntity, RestoreSensor):
         self._smarthome_id = smarthome_id
         self._device_id = device_id
         self._attr_unique_id = f"{smarthome_id}_{device_id}_energy"
-        self._attr_name = f"{zone_name} Energy"
+        self._attr_has_entity_name = True
         self._accumulated_kwh: float = 0.0
         self._last_update: datetime | None = None
 

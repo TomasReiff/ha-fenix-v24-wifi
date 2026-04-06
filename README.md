@@ -8,7 +8,8 @@ Home Assistant custom integration for **Fenix V24 WiFi** floor heating systems, 
 
 - 🌡️ **Climate control** — view and set target temperature per zone
 - 🔥 **Heating state** — binary sensor showing whether a zone is actively heating
-- ⚡ **Power sensor** — rated wattage per zone (from cloud)
+- ⚡ **Rated Power sensor** — static rated wattage per zone (from cloud configuration)
+- 💡 **Power sensor** — actual power consumption per zone: rated wattage when heating is active, 0 W when off
 - 🔋 **Energy sensor** — accumulated kWh per zone while heating is active (persisted across restarts)
 
 ## Installation via HACS
@@ -29,3 +30,12 @@ Copy the `custom_components/fenix_v24_wifi` folder into your Home Assistant `con
 
 - Home Assistant 2024.1 or newer
 - Fenix V24 WiFi system with a cloud account at [v24.fenixgroup.eu](https://v24.fenixgroup.eu)
+
+## Changelog
+
+### 1.1.0
+- Added **Rated Power** sensor showing the static configured wattage per zone
+- Updated **Power** sensor to reflect actual consumption: rated wattage when heating is on, `0 W` when heating is off
+
+### 1.0.0
+- Initial release
