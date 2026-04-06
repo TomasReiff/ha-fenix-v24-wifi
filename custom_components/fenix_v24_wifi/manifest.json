@@ -1,0 +1,13 @@
+{
+  "domain": "fenix_v24_wifi",
+  "name": "Fenix V24 WiFi",
+  "codeowners": ["@TomasReiff"],
+  "config_flow": true,
+  "documentation": "https://github.com/tomasreiff/ha-fenix-v24-wifi",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "quality_scale": "bronze",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "1.0.0"
+}

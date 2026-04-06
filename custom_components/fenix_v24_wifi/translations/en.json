@@ -1,0 +1,60 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "description": "Enter your Fenix account credentials",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "configure_power": {
+        "title": "Zone Heating Power",
+        "description": "Enter heating power in Watts for each zone. Used to calculate energy consumption. Leave 0 to disable energy tracking."
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid email or password",
+      "cannot_connect": "Failed to connect to Fenix API",
+      "unknown": "Unknown error occurred"
+    },
+    "abort": {
+      "already_configured": "Account is already configured",
+      "invalid_auth": "Authentication failed",
+      "cannot_connect": "Cannot connect to Fenix API"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Zone Heating Power",
+        "description": "Enter heating power in Watts for each zone. Used to calculate energy consumption. Leave 0 to disable energy tracking."
+      }
+    },
+    "abort": {
+      "options_updated": "Zone power configuration updated",
+      "invalid_json": "Invalid configuration format",
+      "no_zones": "No zones found. Ensure the integration is connected."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "heating": {
+        "name": "Heating"
+      }
+    },
+    "climate": {
+      "heating": {
+        "name": "Heating"
+      }
+    },
+    "sensor": {
+      "power": {
+        "name": "Power"
+      },
+      "energy": {
+        "name": "Energy"
+      }
+    }
+  }
+}
