@@ -4,10 +4,11 @@
   "codeowners": ["@TomasReiff"],
   "config_flow": true,
   "documentation": "https://github.com/tomasreiff/ha-fenix-v24-wifi",
+  "issue_tracker": "https://github.com/TomasReiff/ha-fenix-v24-wifi/issues",
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "quality_scale": "bronze",
   "requirements": [],
   "single_config_entry": true,
-  "version": "1.1.1"
+  "version": "1.1.2"
 }
