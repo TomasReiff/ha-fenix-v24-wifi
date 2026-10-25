@@ -20,7 +20,7 @@ ATTR_DEVICE_ID = "device_id"
 ATTR_SMARTHOME_ID = "smarthome_id"
 
 # Update Interval
-SCAN_INTERVAL = timedelta(seconds=10)  # same as GoodWe
+SCAN_INTERVAL = timedelta(seconds=30)
 
 # Temperature Limits (in Celsius)
 MIN_TEMP = 5

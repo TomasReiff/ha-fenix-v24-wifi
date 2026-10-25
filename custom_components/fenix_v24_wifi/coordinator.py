@@ -36,6 +36,7 @@ class FenixDataUpdateCoordinator(DataUpdateCoordinator):
         self.api: FenixAPI | None = None
         self.email = email
         self.password = password
+        self._smarthomes_list: list[dict[str, Any]] = []
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from API."""
@@ -44,17 +45,23 @@ class FenixDataUpdateCoordinator(DataUpdateCoordinator):
             self.api = FenixAPI(self.email, self.password, session)
 
         try:
-            user_data = await self.api.get_user()
-            if not user_data:
-                raise UpdateFailed("Failed to fetch user data")
+            if not self._smarthomes_list:
+                user_data = await self.api.get_user()
+                if not user_data:
+                    if self.data and self.data.get("smarthomes"):
+                        _LOGGER.warning(
+                            "Failed to fetch user data; keeping cached state"
+                        )
+                        return self.data
+                    raise UpdateFailed("Failed to fetch user data")
 
-            smarthomes_list = user_data.get("smarthomes", [])
-            if not smarthomes_list:
-                raise UpdateFailed("No smarthomes found")
+                self._smarthomes_list = user_data.get("smarthomes", [])
+                if not self._smarthomes_list:
+                    raise UpdateFailed("No smarthomes found")
 
             data: dict[str, Any] = {"smarthomes": {}}
 
-            for smarthome in smarthomes_list:
+            for smarthome in self._smarthomes_list:
                 smarthome_id = smarthome.get("smarthome_id")
                 if not smarthome_id:
                     continue
@@ -62,8 +69,11 @@ class FenixDataUpdateCoordinator(DataUpdateCoordinator):
                 smarthome_data = await self.api.get_smarthome(smarthome_id)
                 if not smarthome_data:
                     _LOGGER.warning(
-                        "Failed to fetch smarthome %s, skipping", smarthome_id
+                        "Failed to fetch smarthome %s from cloud API, using cached state if available",
+                        smarthome_id,
                     )
+                    if self.data and smarthome_id in self.data.get("smarthomes", {}):
+                        data["smarthomes"][smarthome_id] = self.data["smarthomes"][smarthome_id]
                     continue
 
                 installation_name = smarthome.get("label") or f"Installation {smarthome_id}"
@@ -120,11 +130,34 @@ class FenixDataUpdateCoordinator(DataUpdateCoordinator):
                     "devices": devices,
                 }
 
+            if not data["smarthomes"]:
+                if self.data and self.data.get("smarthomes"):
+                    _LOGGER.warning(
+                        "All smarthome updates failed; retaining cached state"
+                    )
+                    self._smarthomes_list = []
+                    return self.data
+                raise UpdateFailed("Failed to fetch any smarthome data")
+
             return data
 
         except aiohttp.ClientError as err:
+            self._smarthomes_list = []
+            if self.data and self.data.get("smarthomes"):
+                _LOGGER.warning(
+                    "Network error communicating with Fenix API: %s; retaining cached state",
+                    err,
+                )
+                return self.data
             raise UpdateFailed(f"Error communicating with API: {err}") from err
         except Exception as err:
+            self._smarthomes_list = []
+            if self.data and self.data.get("smarthomes"):
+                _LOGGER.warning(
+                    "Error updating Fenix data: %s; retaining cached state",
+                    err,
+                )
+                return self.data
             raise UpdateFailed(f"Error updating data: {err}") from err
 
     async def close(self) -> None:

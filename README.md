@@ -33,6 +33,12 @@ Copy the `custom_components/fenix_v24_wifi` folder into your Home Assistant `con
 
 ## Changelog
 
+### 1.1.4
+- Added MIT LICENSE file
+- Increased scan interval from 10s to 30s to reduce cloud API load and prevent rate limiting / timeouts
+- Cached smarthomes discovery to eliminate redundant API requests every cycle
+- Added coordinator resilience with cached state fallback during transient cloud outages
+
 ### 1.1.3
 - Fix manifest key ordering (required by Hassfest)
 
