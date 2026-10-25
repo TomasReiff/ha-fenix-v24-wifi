@@ -35,6 +35,9 @@ Copy the `custom_components/fenix_v24_wifi` folder into your Home Assistant `con
 
 ## Changelog
 
+### 1.2.2
+- Make Central Air Temperature sensor strictly conditional so no unavailable phantom entity is created when the V24 master unit does not report internal air temperature
+
 ### 1.2.1
 - Added Central Air Temperature sensor on the main installation device (measuring room air from the central V24 WiFi wall unit)
 - Explicitly mapped zone temperature to floor probe reading and provided dedicated Floor Temperature sensor per zone

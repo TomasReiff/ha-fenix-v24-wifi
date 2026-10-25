@@ -49,8 +49,9 @@ async def async_setup_entry(
             model="Installation",
         )
 
-        # Central unit ambient air temperature (from the V24 wall unit)
-        entities.append(FenixCentralAirTemperatureSensor(coordinator, smarthome_id, installation_name))
+        # Only add central air temperature sensor if the unit actually reports one
+        if smarthome_data.get("central_temperature") is not None:
+            entities.append(FenixCentralAirTemperatureSensor(coordinator, smarthome_id, installation_name))
 
         devices = smarthome_data.get("devices", {})
         for device_id, device_data in devices.items():
