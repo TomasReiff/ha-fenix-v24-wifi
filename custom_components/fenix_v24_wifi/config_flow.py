@@ -13,7 +13,13 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 
 from .api import FenixAPI
-from .const import CONF_EMAIL, CONF_PASSWORD, DOMAIN
+from .const import (
+    CONF_EMAIL,
+    CONF_PASSWORD,
+    CONF_SCAN_INTERVAL,
+    DEFAULT_SCAN_INTERVAL_SECONDS,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,6 +55,13 @@ class FenixV24ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
     REAUTH_SCHEMA = STEP_USER_DATA_SCHEMA
+
+    @staticmethod
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> config_entries.OptionsFlow:
+        """Get the options flow for this handler."""
+        return FenixV24OptionsFlowHandler(config_entry)
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -97,6 +110,51 @@ class FenixV24ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_abort(reason="reauth_successful")
 
         return self.async_show_form(step_id="reauth", data_schema=STEP_USER_DATA_SCHEMA)
+
+
+class FenixV24OptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle options flow for Fenix V24 WiFi."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow."""
+        self.config_entry = config_entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage the options."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        schema_dict: dict[Any, Any] = {
+            vol.Optional(
+                CONF_SCAN_INTERVAL,
+                default=self.config_entry.options.get(
+                    CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_SECONDS
+                ),
+            ): vol.All(vol.Coerce(int), vol.Range(min=10, max=300)),
+        }
+
+        coordinator = (
+            self.config_entry.runtime_data.get("coordinator")
+            if hasattr(self.config_entry, "runtime_data") and self.config_entry.runtime_data
+            else None
+        )
+        if coordinator and coordinator.data:
+            for smarthome_id, sh_data in coordinator.data.get("smarthomes", {}).items():
+                for dev_id, dev_data in sh_data.get("devices", {}).items():
+                    key = f"power_{dev_id}"
+                    default_power = int(
+                        self.config_entry.options.get(key, dev_data.get("power_w", 0))
+                    )
+                    schema_dict[vol.Optional(key, default=default_power)] = vol.All(
+                        vol.Coerce(int), vol.Range(min=0, max=10000)
+                    )
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(schema_dict),
+        )
 
 
 class InvalidAuth(HomeAssistantError):

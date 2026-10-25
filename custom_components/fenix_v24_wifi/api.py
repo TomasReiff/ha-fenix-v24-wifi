@@ -158,28 +158,51 @@ class FenixAPI:
             _LOGGER.error("Error fetching smarthome: %s", err)
             return None
 
-    async def set_device_temperature(
-        self, smarthome_id: str, device_id: str, temperature: float
+    async def set_device_mode(
+        self,
+        smarthome_id: str,
+        device_id: str,
+        gv_mode: str,
+        temperature: float | None = None,
     ) -> bool:
-        """Set the target temperature for a device."""
+        """Set mode and/or target temperature for a device."""
         if not self.access_token:
             if not await self.login():
                 return False
 
         try:
-            api_temp = TEMP_TO_API(temperature)
-
-            payload = {
+            payload: dict[str, str] = {
                 "token": self.access_token,
                 "context": "1",
                 "smarthome_id": smarthome_id,
                 "query[id_device]": device_id,
-                "query[consigne_manuel]": str(api_temp),
-                "query[gv_mode]": "15",
-                "query[nv_mode]": "15",
+                "query[gv_mode]": gv_mode,
+                "query[nv_mode]": gv_mode,
                 "peremption": "20000",
                 "lang": "en_GB",
             }
+
+            if gv_mode == "1":
+                # Off
+                payload["query[consigne_manuel]"] = "0"
+            elif gv_mode == "2":
+                # Frost Protection (approx 7.0 C = 446 in API value)
+                payload["query[consigne_hg]"] = "446"
+                payload["query[consigne_manuel]"] = "446"
+            elif gv_mode == "4":
+                # Boost mode (default 2 hours)
+                payload["query[time_boost]"] = "7200"
+                if temperature is not None:
+                    api_temp = str(TEMP_TO_API(temperature))
+                    payload["query[consigne_boost]"] = api_temp
+                    payload["query[consigne_manuel]"] = api_temp
+            elif temperature is not None:
+                api_temp = str(TEMP_TO_API(temperature))
+                payload["query[consigne_manuel]"] = api_temp
+                if gv_mode == "0":
+                    payload["query[consigne_confort]"] = api_temp
+                elif gv_mode == "3":
+                    payload["query[consigne_eco]"] = api_temp
 
             response = await self.session.post(
                 f"{API_BASE_URL}query/push/",
@@ -192,17 +215,25 @@ class FenixAPI:
                 result = await response.json()
                 if result.get("code", {}).get("code") == "8":
                     return True
-                _LOGGER.error("Failed to set device temperature, API response: %s", result)
+                _LOGGER.error("Failed to set device mode, API response: %s", result)
                 return False
             elif response.status == 401:
                 await self._refresh_token_if_needed()
-                return await self.set_device_temperature(
-                    smarthome_id, device_id, temperature
+                return await self.set_device_mode(
+                    smarthome_id, device_id, gv_mode, temperature
                 )
 
-            _LOGGER.error("Failed to set device temperature: %s", response.status)
+            _LOGGER.error("Failed to set device mode: %s", response.status)
             return False
         except aiohttp.ClientError as err:
-            _LOGGER.error("Error setting device temperature: %s", err)
+            _LOGGER.error("Error setting device mode: %s", err)
             return False
+
+    async def set_device_temperature(
+        self, smarthome_id: str, device_id: str, temperature: float
+    ) -> bool:
+        """Set the target temperature for a device."""
+        return await self.set_device_mode(
+            smarthome_id, device_id, gv_mode="15", temperature=temperature
+        )
 

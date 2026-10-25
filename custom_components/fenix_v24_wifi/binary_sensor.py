@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.components.binary_sensor import BinarySensorEntity
+from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass,
+    BinarySensorEntity,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import async_get as async_get_device_registry
@@ -43,13 +46,26 @@ async def async_setup_entry(
 
         devices = smarthome_data.get("devices", {})
         for device_id, device_data in devices.items():
+            zone_name = device_data.get("name", device_id)
+            info = device_data.get("info", {})
+
             entities.append(
                 FenixHeatingBinarySensor(
                     coordinator,
                     smarthome_id,
                     device_id,
-                    device_data["info"],
-                    device_data.get("name", device_id),
+                    info,
+                    zone_name,
+                    entry.entry_id,
+                )
+            )
+            entities.append(
+                FenixBatteryLowBinarySensor(
+                    coordinator,
+                    smarthome_id,
+                    device_id,
+                    info,
+                    zone_name,
                     entry.entry_id,
                 )
             )
@@ -103,7 +119,7 @@ class FenixHeatingBinarySensor(CoordinatorEntity, BinarySensorEntity):
         device = device_data.get(self._device_id, {})
 
         heating_state = device.get("heating_state")
-        
+
         # If no heating_state data, return unavailable
         if heating_state is None or heating_state == "":
             return None
@@ -113,5 +129,58 @@ class FenixHeatingBinarySensor(CoordinatorEntity, BinarySensorEntity):
         try:
             state_value = int(heating_state)
             return state_value > 0
+        except (ValueError, TypeError):
+            return None
+
+
+class FenixBatteryLowBinarySensor(CoordinatorEntity, BinarySensorEntity):
+    """Binary sensor for Fenix thermostat battery low / failure status."""
+
+    _attr_device_class = BinarySensorDeviceClass.BATTERY
+
+    def __init__(
+        self,
+        coordinator: FenixDataUpdateCoordinator,
+        smarthome_id: str,
+        device_id: str,
+        device_info: dict[str, Any],
+        zone_name: str,
+        entry_id: str,
+    ) -> None:
+        """Initialize the battery binary sensor."""
+        super().__init__(coordinator)
+        self._smarthome_id = smarthome_id
+        self._device_id = device_id
+        self._entry_id = entry_id
+        self._device_info = device_info
+
+        self._attr_unique_id = f"{smarthome_id}_{device_id}_battery_low"
+        self._attr_name = f"{zone_name} Battery Low"
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device info."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"{self._smarthome_id}_{self._device_id}")},
+            name=self._attr_name.replace(" Battery Low", ""),
+            manufacturer="Fenix",
+            model="V24 WiFi",
+            via_device=(DOMAIN, self._smarthome_id),
+        )
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return True if battery error is detected (error_code == 1)."""
+        data = self.coordinator.data or {}
+        smarthomes = data.get("smarthomes", {})
+        device_data = (
+            smarthomes.get(self._smarthome_id, {}).get("devices", {})
+        )
+        device = device_data.get(self._device_id, {})
+        error_code = device.get("error_code")
+        if error_code is None:
+            return None
+        try:
+            return int(error_code) == 1
         except (ValueError, TypeError):
             return None

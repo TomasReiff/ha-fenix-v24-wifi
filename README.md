@@ -6,11 +6,13 @@ Home Assistant custom integration for the **Fenix V24 WiFi** thermostat, control
 
 ## Features
 
-- 🌡️ **Climate control** — view and set target temperature per zone
-- 🔥 **Heating state** — binary sensor showing whether a zone is actively heating
-- ⚡ **Rated Power sensor** — static rated wattage per zone (from cloud configuration)
-- 💡 **Power sensor** — actual power consumption per zone: rated wattage when heating is active, 0 W when off
-- 🔋 **Energy sensor** — accumulated kWh per zone while heating is active (persisted across restarts)
+- 🌡️ **Climate control** — view and set target temperature, switch HVAC mode (Heat / Off), and control preset modes (Comfort, Eco, Frost Protection, Boost, Manual)
+- 🔥 **Live heating state** — dynamic `hvac_action` (Heating vs Idle) and binary sensor
+- 🪫 **Battery warning** — binary sensor alerting on low battery for wireless room thermostats
+- ⚡ **Rated Power sensor** — rated wattage per zone (cloud or manual override)
+- 💡 **Power sensor** — actual consumption: rated wattage when heating is active, 0 W when off
+- 🔋 **Energy sensor** — accumulated kWh with restart persistence and downtime spike protection
+- ⚙️ **Options Flow** — configure scan interval and override zone wattages directly from the Home Assistant UI
 
 ## Installation via HACS
 
@@ -32,6 +34,15 @@ Copy the `custom_components/fenix_v24_wifi` folder into your Home Assistant `con
 - Fenix V24 WiFi system with a cloud account at [v24.fenixgroup.eu](https://v24.fenixgroup.eu)
 
 ## Changelog
+
+### 1.2.0
+- Added `hvac_action` (Heating / Idle / Off) for dynamic flame indicators on climate cards
+- Added `HVACMode.OFF` and `HVACMode.HEAT` with on/off switching
+- Added preset modes support (Comfort, Eco, Away / Frost Protection, Boost, Manual)
+- Added Battery Low binary sensor for wireless RF thermostats
+- Added dedicated Floor Temperature sensor when floor probe data is present
+- Added Options Flow UI to configure update interval (10-300s) and manual zone heating wattage overrides
+- Hardened energy accumulation against spikes across Home Assistant restarts and downtime
 
 ### 1.1.4
 - Added MIT LICENSE file

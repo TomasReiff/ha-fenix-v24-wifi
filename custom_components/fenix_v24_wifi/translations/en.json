@@ -7,10 +7,6 @@
           "email": "Email",
           "password": "Password"
         }
-      },
-      "configure_power": {
-        "title": "Zone Heating Power",
-        "description": "Enter heating power in Watts for each zone. Used to calculate energy consumption. Leave 0 to disable energy tracking."
       }
     },
     "error": {
@@ -27,20 +23,21 @@
   "options": {
     "step": {
       "init": {
-        "title": "Zone Heating Power",
-        "description": "Enter heating power in Watts for each zone. Used to calculate energy consumption. Leave 0 to disable energy tracking."
+        "title": "Fenix V24 Options",
+        "description": "Configure cloud update interval and optional manual rated heating power (Watts) per zone.",
+        "data": {
+          "scan_interval": "Update interval (seconds)"
+        }
       }
-    },
-    "abort": {
-      "options_updated": "Zone power configuration updated",
-      "invalid_json": "Invalid configuration format",
-      "no_zones": "No zones found. Ensure the integration is connected."
     }
   },
   "entity": {
     "binary_sensor": {
       "heating": {
         "name": "Heating"
+      },
+      "battery_low": {
+        "name": "Battery Low"
       }
     },
     "climate": {
@@ -57,6 +54,9 @@
       },
       "energy": {
         "name": "Energy"
+      },
+      "floor_temperature": {
+        "name": "Floor Temperature"
       }
     }
   }

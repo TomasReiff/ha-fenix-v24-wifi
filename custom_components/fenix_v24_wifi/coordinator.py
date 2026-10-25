@@ -25,13 +25,14 @@ class FenixDataUpdateCoordinator(DataUpdateCoordinator):
         hass: HomeAssistant,
         email: str,
         password: str,
+        scan_interval: timedelta = SCAN_INTERVAL,
     ) -> None:
         """Initialize the coordinator."""
         super().__init__(
             hass,
             _LOGGER,
             name="Fenix V24 WiFi",
-            update_interval=SCAN_INTERVAL,
+            update_interval=scan_interval,
         )
         self.api: FenixAPI | None = None
         self.email = email
@@ -96,11 +97,21 @@ class FenixDataUpdateCoordinator(DataUpdateCoordinator):
                         continue
 
                     # Convert temperature values from API format to Celsius
-                    current_temp = device.get("temperature_air")
+                    current_temp = (
+                        device.get("temperature_air")
+                        if device.get("temperature_air") is not None
+                        else device.get("temperature_sol")
+                    )
+                    floor_temp = device.get("temperature_sol")
                     target_temp = device.get("consigne_manuel")
 
                     # heating_up: "1" = heating active, "0" = idle
                     heating_up = device.get("heating_up", "0")
+
+                    # Modes and status
+                    gv_mode = str(device.get("gv_mode", "15"))
+                    nv_mode = str(device.get("nv_mode", "15"))
+                    error_code = int(device.get("error_code", 0))
 
                     # Power in Watts from API
                     puissance_app = device.get("puissance_app")
@@ -117,10 +128,16 @@ class FenixDataUpdateCoordinator(DataUpdateCoordinator):
                         "current_temperature": (
                             API_TO_TEMP(int(current_temp)) if current_temp else None
                         ),
+                        "floor_temperature": (
+                            API_TO_TEMP(int(floor_temp)) if floor_temp else None
+                        ),
                         "target_temperature": (
                             API_TO_TEMP(int(target_temp)) if target_temp else None
                         ),
                         "heating_state": heating_up,
+                        "gv_mode": gv_mode,
+                        "nv_mode": nv_mode,
+                        "error_code": error_code,
                     }
 
                 data["smarthomes"][smarthome_id] = {
