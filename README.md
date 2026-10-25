@@ -35,6 +35,10 @@ Copy the `custom_components/fenix_v24_wifi` folder into your Home Assistant `con
 
 ## Changelog
 
+### 1.2.1
+- Added Central Air Temperature sensor on the main installation device (measuring room air from the central V24 WiFi wall unit)
+- Explicitly mapped zone temperature to floor probe reading and provided dedicated Floor Temperature sensor per zone
+
 ### 1.2.0
 - Added `hvac_action` (Heating / Idle / Off) for dynamic flame indicators on climate cards
 - Added `HVACMode.OFF` and `HVACMode.HEAT` with on/off switching

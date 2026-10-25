@@ -49,6 +49,9 @@ async def async_setup_entry(
             model="Installation",
         )
 
+        # Central unit ambient air temperature (from the V24 wall unit)
+        entities.append(FenixCentralAirTemperatureSensor(coordinator, smarthome_id, installation_name))
+
         devices = smarthome_data.get("devices", {})
         for device_id, device_data in devices.items():
             zone_name = device_data.get("name", device_id)
@@ -57,10 +60,8 @@ async def async_setup_entry(
             entities.append(FenixRatedPowerSensor(coordinator, smarthome_id, device_id, zone_name, power_w, entry))
             entities.append(FenixPowerSensor(coordinator, smarthome_id, device_id, zone_name, power_w, entry))
             entities.append(FenixEnergySensor(coordinator, smarthome_id, device_id, zone_name, power_w, entry))
-
-            # If a distinct floor temperature probe value is reported, add dedicated floor probe sensor
-            if device_data.get("floor_temperature") is not None:
-                entities.append(FenixFloorTemperatureSensor(coordinator, smarthome_id, device_id, zone_name))
+            # Floor probe temperature sensor for the heating zone
+            entities.append(FenixFloorTemperatureSensor(coordinator, smarthome_id, device_id, zone_name))
 
     async_add_entities(entities)
 
@@ -312,4 +313,46 @@ class FenixFloorTemperatureSensor(CoordinatorEntity, SensorEntity):
         )
         if not device:
             return None
-        return device.get("floor_temperature")
+        return device.get("floor_temperature") or device.get("current_temperature")
+
+
+class FenixCentralAirTemperatureSensor(CoordinatorEntity, SensorEntity):
+    """Sensor showing ambient air temperature from the central V24 WiFi unit."""
+
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "central_air_temperature"
+
+    def __init__(
+        self,
+        coordinator: FenixDataUpdateCoordinator,
+        smarthome_id: str,
+        installation_name: str,
+    ) -> None:
+        """Initialize the central air temperature sensor."""
+        super().__init__(coordinator)
+        self._smarthome_id = smarthome_id
+        self._installation_name = installation_name
+        self._attr_unique_id = f"{smarthome_id}_central_air_temperature"
+        self._attr_name = f"{installation_name} Central Air Temperature"
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device info (attached to the main Installation/Central Unit)."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._smarthome_id)},
+            name=self._installation_name,
+            manufacturer="Fenix",
+            model="V24 Central Unit",
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the central unit ambient air temperature."""
+        smarthome_data = (
+            (self.coordinator.data or {})
+            .get("smarthomes", {})
+            .get(self._smarthome_id, {})
+        )
+        return smarthome_data.get("central_temperature")

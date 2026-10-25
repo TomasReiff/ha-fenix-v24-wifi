@@ -57,6 +57,9 @@
       },
       "floor_temperature": {
         "name": "Floor Temperature"
+      },
+      "central_air_temperature": {
+        "name": "Central Air Temperature"
       }
     }
   }

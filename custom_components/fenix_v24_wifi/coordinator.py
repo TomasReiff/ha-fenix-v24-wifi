@@ -140,9 +140,32 @@ class FenixDataUpdateCoordinator(DataUpdateCoordinator):
                         "error_code": error_code,
                     }
 
+                # Check for central unit ambient air temperature (from V24 WiFi central unit)
+                central_temp_raw = (
+                    smarthome_data.get("temperature_air")
+                    or smarthome_data.get("temp_air")
+                    or smarthome_data.get("temperature")
+                    or smarthome.get("temperature_air")
+                )
+                central_temp = (
+                    API_TO_TEMP(int(central_temp_raw)) if central_temp_raw else None
+                )
+
+                # Also check if central unit is listed in devices (e.g. V24 Central / WiFi unit)
+                if central_temp is None:
+                    for device in devices_list:
+                        nom = (device.get("nom_appareil") or "").lower()
+                        lbl = (device.get("label_interface") or "").lower()
+                        if "central" in nom or "v24" in nom or "wifi" in nom or "central" in lbl:
+                            dev_temp = device.get("temperature_air") or device.get("temperature_sol")
+                            if dev_temp:
+                                central_temp = API_TO_TEMP(int(dev_temp))
+                                break
+
                 data["smarthomes"][smarthome_id] = {
                     "name": installation_name,
                     "location": location,
+                    "central_temperature": central_temp,
                     "info": smarthome,
                     "devices": devices,
                 }
