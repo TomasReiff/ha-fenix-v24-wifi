@@ -35,6 +35,10 @@ Copy the `custom_components/fenix_v24_wifi` folder into your Home Assistant `con
 
 ## Changelog
 
+### 1.2.3
+- Fix: resolve OptionsFlow initialization and missing `@callback` decorator that caused "Config flow could not be loaded : 500" error in modern Home Assistant
+- Use Home Assistant shared aiohttp client session during config flow validation
+
 ### 1.2.2
 - Make Central Air Temperature sensor strictly conditional so no unavailable phantom entity is created when the V24 master unit does not report internal air temperature
 
